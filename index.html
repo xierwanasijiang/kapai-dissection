@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>KaPai 解剖图谱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --abyss:#051A21;
+  --deep:#074254;
+  --panel:#0A2C37;
+  --panel-2:#0E3744;
+  --line:rgba(147,174,177,.18);
+  --line-strong:rgba(147,174,177,.34);
+  --bone:#EDE6D3;
+  --mist:#93AEB1;
+  --dim:#5F7F84;
+  --ember:#E8743B;
+  --ember-soft:rgba(232,116,59,.16);
+  --verdigris:#62C3A5;
+  --verdigris-soft:rgba(98,195,165,.14);
+  --gold:#D9B45A;
+  --skill:#6BA6C9;
+  --curse:#9A7FB8;
+  --serif:"Noto Serif SC","Songti SC","STSong",serif;
+  --sans:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--abyss);color:var(--bone);font-family:var(--sans);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(1100px 700px at 78% -10%,rgba(7,66,84,.85),transparent 65%),radial-gradient(900px 600px at -10% 110%,rgba(232,116,59,.07),transparent 60%)}
+a{color:var(--ember)}
+::selection{background:var(--ember);color:var(--abyss)}
+:focus-visible{outline:2px solid var(--ember);outline-offset:3px;border-radius:4px}
+
+.shell{position:relative;z-index:1;padding-inline:clamp(16px,4vw,48px);padding-block:0 96px}
+.col{max-width:1080px;margin-inline:auto}
+@media (min-width:1180px){.shell{padding-left:180px}}
+
+/* floor gauge */
+.gauge{position:fixed;left:28px;top:50%;transform:translateY(-50%);z-index:5;display:none}
+@media (min-width:1180px){.gauge{display:block}}
+.gauge ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column-reverse;gap:4px;position:relative}
+.gauge ol::before{content:"";position:absolute;left:15px;top:6px;bottom:6px;width:1px;background:var(--line)}
+.gauge .fill{position:absolute;left:15px;bottom:6px;width:1px;background:var(--ember);height:0;transition:height .25s linear}
+.gauge li a{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:3px 0;transition:color .2s}
+.gauge li a .dot{width:31px;display:flex;justify-content:center}
+.gauge li a .dot i{width:7px;height:7px;border-radius:50%;background:var(--abyss);border:1px solid var(--dim);transition:all .25s var(--ease)}
+.gauge li a .lbl{font-family:var(--sans);font-size:12px;letter-spacing:0;opacity:0;transform:translateX(-4px);transition:all .2s}
+.gauge:hover li a .lbl,.gauge li.on a .lbl{opacity:1;transform:none}
+.gauge li.on a{color:var(--bone)}
+.gauge li.on a .dot i{background:var(--ember);border-color:var(--ember);box-shadow:0 0 0 4px var(--ember-soft)}
+.gauge li.past a .dot i{background:var(--ember);border-color:var(--ember)}
+.topbar{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);height:2px;z-index:6;background:transparent}
+.topbar i{display:block;height:100%;width:0;background:var(--ember)}
+@media (min-width:1180px){.topbar{display:none}}
+
+/* type */
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist)}
+.eyebrow b{color:var(--ember);font-weight:600}
+h1,h2,h3{font-family:var(--serif);font-weight:900;text-wrap:balance;margin:0;letter-spacing:.01em}
+h2{font-size:clamp(28px,4.2vw,44px);line-height:1.2}
+h3{font-size:20px;font-weight:700;line-height:1.35}
+p{margin:0;max-width:66ch}
+.lead{font-size:18px;color:var(--bone)}
+.muted{color:var(--mist)}
+code,.mono{font-family:var(--mono);font-size:.88em}
+code{background:rgba(147,174,177,.1);padding:1px 6px;border-radius:4px;color:var(--bone)}
+.num{font-variant-numeric:tabular-nums}
+
+/* hero */
+.hero{min-height:auto;padding-top:clamp(64px,10vw,120px);padding-bottom:56px;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+@media (max-width:900px){.hero{grid-template-columns:1fr;padding-top:56px}}
+.hero h1{font-size:clamp(46px,8vw,96px);line-height:1.02;margin-top:18px}
+.hero h1 em{font-style:normal;color:var(--ember)}
+.hero .lead{margin-top:22px;color:var(--mist)}
+.hero .lead strong{color:var(--bone);font-weight:500}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:28px}
+.chip{font-family:var(--mono);font-size:12px;padding:5px 10px;border:1px solid var(--line-strong);border-radius:999px;color:var(--mist);white-space:nowrap}
+.chip b{color:var(--bone);font-weight:600}
+
+.hand{position:relative;height:360px;display:flex;justify-content:center;align-items:flex-end;padding-bottom:10px}
+.hand .c{position:absolute;bottom:20px;width:150px;height:212px;border-radius:14px;padding:14px 14px 12px;display:flex;flex-direction:column;
+  background:linear-gradient(170deg,var(--panel-2),var(--panel));border:1px solid var(--line-strong);box-shadow:0 18px 40px rgba(0,0,0,.45);
+  transform-origin:50% 140%;transition:transform .45s var(--ease),box-shadow .3s;cursor:default}
+.hand .c::before{content:"";position:absolute;inset:6px;border-radius:9px;border:1px solid var(--line);pointer-events:none}
+.hand .c .cost{position:absolute;top:-10px;left:-10px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-weight:900;font-size:17px;color:var(--abyss);background:var(--ember);box-shadow:0 0 0 3px var(--abyss)}
+.hand .c .t{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--mist);text-transform:uppercase;margin-top:6px}
+.hand .c .v{font-family:var(--serif);font-weight:900;font-size:36px;line-height:1.05;margin-top:auto}
+.hand .c .d{font-size:12px;color:var(--mist);line-height:1.5;margin-top:6px}
+.hand .c.atk .cost{background:var(--ember)} .hand .c.skl .cost{background:var(--skill)} .hand .c.pow .cost{background:var(--gold)}
+.hand .c:nth-child(1){transform:rotate(-24deg) translateX(-10px)}
+.hand .c:nth-child(2){transform:rotate(-12deg)}
+.hand .c:nth-child(3){transform:rotate(0deg) translateY(-14px)}
+.hand .c:nth-child(4){transform:rotate(12deg)}
+.hand .c:nth-child(5){transform:rotate(24deg) translateX(10px)}
+.hand:hover .c:nth-child(1){transform:rotate(-34deg) translateX(-40px)}
+.hand:hover .c:nth-child(2){transform:rotate(-17deg) translateX(-18px)}
+.hand:hover .c:nth-child(4){transform:rotate(17deg) translateX(18px)}
+.hand:hover .c:nth-child(5){transform:rotate(34deg) translateX(40px)}
+.hand .c:hover{z-index:4;box-shadow:0 26px 60px rgba(0,0,0,.6),0 0 0 1px var(--ember)}
+.hand .c:nth-child(1):hover{transform:rotate(-30deg) translateX(-40px) translateY(-26px)}
+.hand .c:nth-child(2):hover{transform:rotate(-14deg) translateX(-18px) translateY(-26px)}
+.hand .c:nth-child(3):hover{transform:translateY(-40px) scale(1.04)}
+.hand .c:nth-child(4):hover{transform:rotate(14deg) translateX(18px) translateY(-26px)}
+.hand .c:nth-child(5):hover{transform:rotate(30deg) translateX(40px) translateY(-26px)}
+@media (max-width:520px){.hand{height:300px}.hand .c{width:116px;height:170px;padding:12px 10px}.hand .c .v{font-size:26px}.hand .c .d{font-size:11px}}
+
+/* sections */
+section.ch{padding-top:clamp(72px,10vw,120px);scroll-margin-top:24px}
+.ch-head{display:grid;grid-template-columns:auto 1fr;gap:10px 22px;align-items:baseline;margin-bottom:28px}
+.floor{font-family:var(--serif);font-weight:900;font-size:15px;color:var(--ember);border:1px solid var(--ember);border-radius:6px;padding:2px 8px;line-height:1.5;align-self:start;margin-top:10px}
+.ch-head p{grid-column:2;color:var(--mist)}
+@media (max-width:600px){.ch-head{grid-template-columns:1fr}.ch-head p{grid-column:1}.floor{justify-self:start}}
+.reveal{transition:transform .8s var(--ease)}
+.reveal.pending{transform:translateY(18px)}
+
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:36px;align-items:start}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.prose{display:flex;flex-direction:column;gap:16px}
+.prose ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px;max-width:64ch}
+.prose li::marker{color:var(--ember)}
+
+.panel{background:linear-gradient(180deg,rgba(14,55,68,.72),rgba(10,44,55,.72));border:1px solid var(--line);border-radius:16px;padding:22px;backdrop-filter:blur(6px)}
+.panel-h{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.panel-h .eyebrow{font-size:11px}
+
+.btn{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--bone);background:rgba(147,174,177,.08);border:1px solid var(--line-strong);border-radius:999px;padding:7px 14px;cursor:pointer;transition:all .18s var(--ease);white-space:nowrap}
+.btn:hover{border-color:var(--ember);color:#fff;background:var(--ember-soft)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--ember);border-color:var(--ember);color:var(--abyss);font-weight:700}
+.btn.primary:hover{filter:brightness(1.08);color:var(--abyss)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+
+/* evidence */
+.evidence{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.evidence{grid-template-columns:1fr}}
+.ev{border:1px solid var(--line);border-radius:12px;padding:16px;background:rgba(5,26,33,.5);transition:border-color .2s,transform .3s var(--ease)}
+.ev:hover{border-color:var(--line-strong);transform:translateY(-2px)}
+.ev .k{font-family:var(--mono);font-size:11px;color:var(--mist);letter-spacing:.08em}
+.ev .q{font-family:var(--mono);font-size:13px;color:var(--bone);margin-top:8px;word-break:break-word;line-height:1.6}
+.ev .q mark{background:none;color:var(--ember)}
+.ev .n{font-family:var(--serif);font-weight:900;font-size:30px;margin-top:4px}
+
+.note{border-left:2px solid var(--gold);padding:10px 0 10px 16px;color:var(--mist);font-size:14px;max-width:70ch}
+.note b{color:var(--gold);font-weight:500}
+
+/* stats strip */
+.strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.strip div{padding:18px 16px;border-right:1px solid var(--line)}
+.strip div:last-child{border-right:0}
+.strip .n{font-family:var(--serif);font-weight:900;font-size:34px;line-height:1.1}
+.strip .l{font-size:13px;color:var(--mist)}
+@media (max-width:760px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.strip div{border-bottom:1px solid var(--line)}}
+
+/* state machine */
+.fsm{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+.fsm .st{flex:1 1 150px;border:1px solid var(--line-strong);border-radius:12px;padding:14px;cursor:pointer;background:rgba(5,26,33,.55);transition:all .25s var(--ease);text-align:left;color:var(--bone);font:inherit}
+.fsm .st:hover{border-color:var(--ember)}
+.fsm .st.on{border-color:var(--ember);background:var(--ember-soft);box-shadow:0 0 0 4px rgba(232,116,59,.08)}
+.fsm .st .k{font-family:var(--mono);font-size:12px;color:var(--ember)}
+.fsm .st .t{font-weight:700;margin-top:2px}
+.fsm .arrow{display:grid;place-items:center;width:34px;color:var(--dim);font-family:var(--mono)}
+@media (max-width:640px){.fsm{flex-direction:column}.fsm .arrow{width:auto;height:22px;transform:rotate(90deg)}}
+.fsm-detail{margin-top:14px;min-height:92px;font-size:14px;color:var(--mist)}
+.fsm-detail ul{margin:6px 0 0;padding-left:1.1em}
+.chain{font-family:var(--mono);font-size:12.5px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;color:var(--mist)}
+.chain span{border:1px solid var(--line);border-radius:6px;padding:3px 8px;color:var(--bone);background:rgba(5,26,33,.5)}
+.chain i{font-style:normal;color:var(--dim)}
+
+/* bars */
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--mist)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.bars{display:flex;flex-direction:column;gap:5px;margin-top:14px}
+.bar{display:grid;grid-template-columns:132px minmax(0,1fr) 64px;gap:12px;align-items:center;font-size:13px;cursor:default;padding:2px 0;border-radius:6px}
+.bar .name{font-family:var(--mono);color:var(--mist);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .track{height:14px;background:rgba(147,174,177,.07);border-radius:4px;overflow:hidden}
+.bar .track i{display:block;height:100%;border-radius:4px;width:var(--w);transition:width 1.1s var(--ease),filter .2s}
+.bar .val{font-family:var(--mono);text-align:right;color:var(--bone);font-variant-numeric:tabular-nums}
+.bar:hover .name{color:var(--bone)}
+.bar:hover .track i{filter:brightness(1.25)}
+.bars.pending .track i{width:0}
+@media (max-width:520px){.bar{grid-template-columns:96px minmax(0,1fr) 52px;gap:8px}}
+.bar-tip{margin-top:14px;font-size:13px;color:var(--mist);min-height:42px;border-top:1px dashed var(--line);padding-top:12px}
+.bar-tip b{color:var(--bone)}
+
+/* map */
+.map-wrap{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:20px}
+@media (max-width:860px){.map-wrap{grid-template-columns:1fr}}
+.map-stage{position:relative;border-radius:12px;background:rgba(5,26,33,.6);border:1px solid var(--line);overflow:hidden}
+.map-stage svg{display:block;width:100%;height:auto}
+.map-side{display:flex;flex-direction:column;gap:14px;font-size:13px}
+.seed{display:flex;gap:8px;align-items:center}
+.seed input{flex:1;min-width:0;font-family:var(--mono);font-size:14px;letter-spacing:.08em;text-transform:uppercase;background:rgba(5,26,33,.7);border:1px solid var(--line-strong);border-radius:8px;color:var(--bone);padding:7px 10px}
+.seed input:focus{outline:none;border-color:var(--ember)}
+.counts{display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-family:var(--mono);font-size:12.5px}
+.counts .sw{display:inline-flex;align-items:center;gap:8px;color:var(--mist)}
+.counts b{color:var(--bone);font-weight:600;text-align:right}
+.rules{font-size:12.5px;color:var(--mist);display:flex;flex-direction:column;gap:6px;margin:0;padding-left:1em}
+.map-tip{position:absolute;pointer-events:none;background:var(--abyss);border:1px solid var(--line-strong);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--bone);white-space:nowrap;transform:translate(-50%,-120%);opacity:0;transition:opacity .15s}
+.map-node{cursor:pointer;transition:transform .2s var(--ease);transform-box:fill-box;transform-origin:center}
+.map-node:hover{transform:scale(1.35)}
+.edge{stroke:var(--dim);stroke-width:1.6;stroke-dasharray:3 5;fill:none}
+.edge.hl{stroke:var(--ember);stroke-dasharray:none;stroke-width:2.2}
+
+/* rng */
+.streams{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.stream{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:rgba(5,26,33,.5);font-size:13px}
+.stream .k{font-family:var(--mono);color:var(--bone);font-size:13px}
+.stream .d{color:var(--mist);font-size:12px;line-height:1.5;margin-top:2px}
+.stream.floor{border-color:rgba(98,195,165,.45)}
+.stream.floor .k::after{content:" · 每层重置";color:var(--verdigris);font-size:11px}
+.stream.map{border-color:rgba(232,116,59,.45)}
+.stream.map .k::after{content:" · 每幕重置";color:var(--ember);font-size:11px}
+.rng-demo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (max-width:640px){.rng-demo{grid-template-columns:1fr}}
+.rng-seq{font-family:var(--mono);font-size:13px;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.rng-seq span{border:1px solid var(--line);border-radius:6px;padding:2px 8px;animation:pop .35s var(--ease) both}
+@keyframes pop{from{transform:translateY(6px) scale(.9)}to{transform:none}}
+
+/* damage calculator */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+@media (max-width:860px){.calc{grid-template-columns:1fr}}
+.ctl{display:flex;flex-direction:column;gap:12px}
+.ctl .row{display:grid;grid-template-columns:110px 1fr 40px;gap:10px;align-items:center;font-size:13px}
+.ctl .row label{color:var(--mist)}
+.ctl .row output{font-family:var(--mono);text-align:right}
+.ctl input[type=range]{width:100%;accent-color:var(--ember)}
+.toggles{display:flex;flex-wrap:wrap;gap:6px}
+.tg{font-size:12.5px;padding:5px 10px;border-radius:8px;border:1px solid var(--line-strong);background:transparent;color:var(--mist);cursor:pointer;transition:all .18s;font-family:var(--sans)}
+.tg[aria-pressed="true"]{background:var(--ember-soft);border-color:var(--ember);color:var(--bone)}
+.tg.def[aria-pressed="true"]{background:var(--verdigris-soft);border-color:var(--verdigris)}
+.pipe{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0;font-family:var(--mono);font-size:13px}
+.pipe li{display:grid;grid-template-columns:1fr auto;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);transition:opacity .2s,color .2s}
+.pipe li.skip{opacity:.35}
+.pipe li .op{color:var(--mist)}
+.pipe li .op b{color:var(--bone);font-weight:600}
+.pipe li .v{font-variant-numeric:tabular-nums}
+.pipe li.fin{border-bottom:0;padding-top:14px}
+.big{font-family:var(--serif);font-weight:900;font-size:56px;line-height:1;color:var(--ember);display:inline-block;transition:transform .25s var(--ease)}
+.big.bump{transform:scale(1.14)}
+
+/* queue */
+.q-lanes{display:grid;gap:10px}
+.lane{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px;align-items:center}
+.lane .ln{font-family:var(--mono);font-size:12px;color:var(--mist)}
+.lane .slots{display:flex;gap:6px;flex-wrap:wrap;min-height:38px;align-items:center;border:1px dashed var(--line);border-radius:10px;padding:6px}
+@media (max-width:560px){.lane{grid-template-columns:1fr}}
+.act{font-family:var(--mono);font-size:12px;padding:5px 9px;border-radius:7px;border:1px solid var(--line-strong);background:rgba(5,26,33,.7);animation:pop .3s var(--ease) both;white-space:nowrap}
+.act.card{border-color:var(--skill);color:#cfe6f5}
+.act.dmg{border-color:var(--ember);color:#ffd6c2}
+.act.top{border-color:var(--gold);color:#f3e2b3}
+.act.cur{box-shadow:0 0 0 3px var(--ember-soft);border-color:var(--ember);background:var(--ember-soft)}
+.q-log{margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--mist);height:110px;overflow:auto;border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:2px}
+.q-log div:first-child{color:var(--bone)}
+
+/* pity */
+.pity{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px}
+@media (max-width:860px){.pity{grid-template-columns:1fr}}
+.pity svg{width:100%;height:auto;display:block}
+.tally{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tally div{border:1px solid var(--line);border-radius:10px;padding:10px;text-align:left}
+.tally .n{font-family:var(--serif);font-weight:900;font-size:26px}
+.tally .l{font-size:12px;color:var(--mist)}
+.tally .c{color:var(--mist)} .tally .u{color:var(--skill)} .tally .r{color:var(--gold)}
+.odds{font-family:var(--mono);font-size:13px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;margin-top:12px}
+.odds b{color:var(--bone);font-weight:600;text-align:right}
+.last-draw{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;min-height:30px}
+.last-draw span{font-size:12px;padding:3px 9px;border-radius:6px;border:1px solid currentColor;animation:pop .3s var(--ease) both}
+
+/* hooks */
+.hooks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+@media (max-width:980px){.hooks{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.hooks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.phase{border-top:2px solid var(--ember);padding-top:10px}
+.phase h4{margin:0 0 8px;font-size:13px;font-weight:700;font-family:var(--sans)}
+.phase h4 small{font-family:var(--mono);color:var(--mist);font-weight:400;margin-left:4px}
+.hk{display:block;width:100%;text-align:left;font-family:var(--mono);font-size:11.5px;color:var(--mist);background:transparent;border:1px solid transparent;border-radius:6px;padding:3px 6px;cursor:pointer;transition:all .15s}
+.hk:hover,.hk.on{color:var(--bone);border-color:var(--line-strong);background:rgba(147,174,177,.08)}
+.hk.ex::after{content:"●";color:var(--gold);font-size:8px;margin-left:5px;vertical-align:2px}
+.hook-detail{margin-top:16px;font-size:14px;color:var(--mist);min-height:48px}
+.hook-detail b{color:var(--bone)}
+
+/* inventory */
+.inv{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:22px}
+@media (max-width:860px){.inv{grid-template-columns:1fr}}
+.heat{width:100%;border-collapse:separate;border-spacing:4px;font-size:13px}
+.heat th{font-family:var(--mono);font-weight:400;color:var(--mist);font-size:11px;letter-spacing:.06em;text-align:center;padding:4px}
+.heat th[scope=row]{text-align:left}
+.heat td{text-align:center;border-radius:6px;padding:10px 4px;font-family:var(--mono);font-variant-numeric:tabular-nums;transition:transform .2s var(--ease)}
+.heat td:hover{transform:scale(1.08)}
+.scroll-x{overflow-x:auto}
+.acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.acts div{border:1px solid var(--line);border-radius:10px;padding:12px}
+.acts .k{font-family:var(--mono);font-size:11px;color:var(--mist)}
+.acts .t{font-weight:700;font-size:14px}
+.acts .r{font-family:var(--mono);font-size:12px;color:var(--mist);margin-top:4px;line-height:1.7}
+.acts .r b{color:var(--bone)}
+@media (max-width:560px){.acts{grid-template-columns:1fr}}
+.tiers{display:flex;height:34px;border-radius:8px;overflow:hidden;margin-top:10px}
+.tiers i{display:grid;place-items:center;font-style:normal;font-family:var(--mono);font-size:11px;color:var(--abyss);font-weight:600;transition:flex-grow .3s,filter .2s;cursor:default;min-width:0;overflow:hidden}
+.tiers i:hover{filter:brightness(1.2)}
+
+/* save timeline */
+.tl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;position:relative;margin-top:8px}
+.tl::before{content:"";position:absolute;left:0;right:0;top:15px;height:1px;background:var(--line-strong)}
+.tl div{position:relative;padding-top:34px;padding-right:14px}
+.tl div::before{content:"";position:absolute;top:9px;left:0;width:13px;height:13px;border-radius:50%;background:var(--abyss);border:2px solid var(--ember)}
+.tl .k{font-family:var(--mono);font-size:12px;color:var(--ember)}
+.tl .t{font-weight:700;font-size:14px;margin-top:2px}
+.tl .d{font-size:12.5px;color:var(--mist);margin-top:4px;line-height:1.6}
+@media (max-width:760px){.tl{grid-template-columns:1fr 1fr;row-gap:18px}.tl::before{display:none}}
+.keys{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.keys code{font-size:12px}
+
+/* diagnosis */
+.diag{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.diag{grid-template-columns:1fr}}
+.dg{border:1px solid var(--line);border-radius:12px;padding:16px 16px 16px 18px;position:relative;background:rgba(5,26,33,.45)}
+.dg .sev{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:2px 8px;border-radius:999px;display:inline-block}
+.dg.risk .sev{background:var(--ember-soft);color:var(--ember)}
+.dg.good .sev{background:var(--verdigris-soft);color:var(--verdigris)}
+.dg.cost .sev{background:rgba(217,180,90,.14);color:var(--gold)}
+.dg h3{font-size:16px;margin-top:8px}
+.dg p{font-size:14px;color:var(--mist);margin-top:6px}
+
+/* blueprint */
+.bp{display:grid;gap:10px}
+.layer{display:grid;grid-template-columns:180px minmax(0,1fr);gap:18px;border:1px solid var(--line);border-radius:12px;padding:16px;align-items:start;transition:border-color .2s,transform .3s var(--ease)}
+.layer:hover{border-color:var(--ember);transform:translateX(4px)}
+.layer .k{font-family:var(--mono);font-size:11px;color:var(--mist)}
+.layer .t{font-family:var(--serif);font-weight:700;font-size:18px}
+.layer .m{display:flex;flex-wrap:wrap;gap:6px}
+.layer .m span{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--bone)}
+.layer .m span.from{color:var(--mist);border-style:dashed}
+@media (max-width:640px){.layer{grid-template-columns:1fr}}
+.cta{margin-top:28px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;border:1px solid var(--ember);border-radius:16px;padding:22px 24px;background:linear-gradient(120deg,var(--ember-soft),transparent 70%)}
+.cta h3{font-size:22px}
+.cta p{color:var(--mist);font-size:14px;margin-top:4px}
+
+.route{counter-reset:r;list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.route li{counter-increment:r;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:baseline;font-size:14px}
+.route li::before{content:counter(r);font-family:var(--serif);font-weight:900;color:var(--ember);font-size:18px}
+.route li span{color:var(--mist)}
+
+footer{margin-top:96px;padding-top:24px;border-top:1px solid var(--line);font-size:13px;color:var(--dim);display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .reveal.pending{transform:none}
+  .bars.pending .track i{width:var(--w)}
+}
+</style>
+</head>
+<body>
+<div class="topbar" aria-hidden="true"><i id="topfill"></i></div>
+
+<nav class="gauge" aria-label="章节">
+  <ol id="gauge"><span class="fill" id="gfill"></span></ol>
+</nav>
+
+<main class="shell">
+<div class="col">
+
+<header class="hero" id="f0" data-floor="0" data-label="入塔">
+  <div>
+    <div class="eyebrow"><b>拆解报告</b> · KaPai / Cocos Creator 3.8.8</div>
+    <h1>把一局卡牌游戏<em>拆开</em>看</h1>
+    <p class="lead">KaPai 是一个用 <strong>Cocos Creator 3.8.8 与 TypeScript</strong> 写成的卡牌构筑游戏工程。这份报告沿着一局游戏的顺序，从启动、地图、战斗、奖励一路拆到存档，只描述源码和资源里实际存在的内容。</p>
+    <div class="meta">
+      <span class="chip">引擎 <b>Cocos Creator 3.8.8</b></span>
+      <span class="chip">语言 <b>TypeScript</b></span>
+      <span class="chip">版本号 <b>V2.3.4 · 2022-12-18</b></span>
+      <span class="chip">可玩角色 <b>2</b></span>
+    </div>
+  </div>
+  <div class="hand" aria-label="工程规模">
+    <div class="c atk"><span class="cost">1</span><span class="t">源文件</span><span class="v num" data-count="180">180</span><span class="d">个 .ts，分布在 26 个模块</span></div>
+    <div class="c skl"><span class="cost">2</span><span class="t">代码行</span><span class="v num" data-count="31457">31,457</span><span class="d">行 TypeScript</span></div>
+    <div class="c pow"><span class="cost">3</span><span class="t">图像</span><span class="v num" data-count="2307">2,307</span><span class="d">张 PNG / JPG，另有 85 套 Spine 骨骼</span></div>
+    <div class="c skl"><span class="cost">1</span><span class="t">音频</span><span class="v num" data-count="435">435</span><span class="d">段，29 首音乐 + 406 个音效</span></div>
+    <div class="c atk"><span class="cost">0</span><span class="t">资源体积</span><span class="v num">256<small style="font-size:18px"> MB</small></span><span class="d">resources/original 目录</span></div>
+  </div>
+</header>
+
+<!-- F1 -->
+<section class="ch" id="f1" data-floor="1" data-label="引擎">
+  <div class="ch-head reveal"><span class="floor">F1</span><h2>引擎只当画布用</h2>
+    <p>典型的 Cocos 工程靠场景、预制体和编辑器组装画面。KaPai 几乎不用这些，所有节点都在代码里创建。</p></div>
+  <div class="strip reveal">
+    <div><div class="n">1</div><div class="l">场景 OriginalGame.scene</div></div>
+    <div><div class="n">0</div><div class="l">预制体 .prefab</div></div>
+    <div><div class="n">0</div><div class="l">编辑器动画 .anim</div></div>
+    <div><div class="n">2</div><div class="l">@ccclass 组件</div></div>
+    <div><div class="n num" data-count="131">131</div><div class="l">处 new Node() 代码建节点</div></div>
+  </div>
+  <div class="panel reveal" style="margin-top:18px">
+    <div class="panel-h"><span class="eyebrow">启动链</span></div>
+    <div class="chain"><span>OriginalGame.scene</span><i>→</i><span>OriginalGameBootstrap</span><i>→</i><span>new CardCrawlGame(root)</span><i>→</i><span>initialize()</span><i>→</i><span>update(dt ≤ 0.1s)</span></div>
+    <div class="panel-h" style="margin-top:22px"><span class="eyebrow">GameMode 状态机 · 点击查看各状态在做什么</span></div>
+    <div class="fsm" id="fsm">
+      <button class="st on" data-k="0"><div class="k">SPLASH</div><div class="t">开场画面</div></button>
+      <div class="arrow">→</div>
+      <button class="st" data-k="1"><div class="k">CHAR_SELECT</div><div class="t">主菜单与选人</div></button>
+      <div class="arrow">→</div>
+      <button class="st" data-k="2"><div class="k">GAMEPLAY</div><div class="t">一局游戏</div></button>
+    </div>
+    <div class="fsm-detail" id="fsmDetail"></div>
+  </div>
+  <p class="muted reveal" style="margin-top:14px;font-size:14px">加载阶段的背景色 <code>rgb(7, 66, 84)</code> 写死在 OriginalGameBootstrap.ts 第 43 行，作为资源加载期间的底色。这份报告的主色也取自它。</p>
+</section>
+
+<!-- F2 -->
+<section class="ch" id="f2" data-floor="2" data-label="地形">
+  <div class="ch-head reveal"><span class="floor">F2</span><h2>代码地形：180 个文件落在哪里</h2>
+    <p>按模块统计行数。界面和表现两层占了一半，真正的规则代码集中在战斗、遗物和怪物三处。悬停查看每个模块的最大文件。</p></div>
+  <div class="panel reveal">
+    <div class="legend" id="layerLegend"></div>
+    <div class="bars pending" id="bars"></div>
+    <div class="bar-tip" id="barTip">悬停任意一行查看详情。</div>
+  </div>
+</section>
+
+<!-- F3 -->
+<section class="ch" id="f3" data-floor="3" data-label="地图">
+  <div class="ch-head reveal"><span class="floor">F3</span><h2>地图：6 条路径织成的 15 层</h2>
+    <p>下面的地图由网页直接运行工程里的 MapGenerator 与 RoomTypeAssigner 生成，随机数也是同一套算法。换一个种子，就是另一座塔。</p></div>
+  <div class="panel reveal">
+    <div class="map-wrap">
+      <div class="map-stage" id="mapStage"><svg id="mapSvg" viewBox="0 0 560 700" role="img" aria-label="程序生成的地图"></svg><div class="map-tip" id="mapTip"></div></div>
+      <div class="map-side">
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">种子</div>
+          <div class="seed"><input id="seedIn" value="KAPAI7" maxlength="12" aria-label="地图种子"><button class="btn" id="seedGo">生成</button></div>
+          <div class="btns" style="margin-top:8px"><button class="btn primary" id="seedRoll">随机种子</button></div>
+        </div>
+        <div class="counts" id="mapCounts"></div>
+        <ul class="rules">
+          <li>网格 15 行 × 7 列，从底部随机起点画 6 条路径，第二条的起点不能和第一条重合。</li>
+          <li>两条路径在 3 层内汇合就改道，避免过早交叉。</li>
+          <li>第 1 层全是普通怪，第 9 层全是宝箱，第 15 层全是篝火。</li>
+          <li>其余房间按 商店 5% · 篝火 12% · 精英 8% · 问号 22% 分配，剩下填普通怪。</li>
+          <li>前 5 层没有篝火和精英，第 14 层起没有篝火；父子相连的特殊房间不能同类，兄弟节点尽量不同类。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <p class="muted reveal" style="margin-top:14px;font-size:14px">一个细节：<code>commonAncestor</code> 里比较的是 <code>first.x &lt; second.y</code>，横坐标和纵坐标混在一起，看起来像笔误。工程保留了这个写法，改掉它会改变同一种子生成的地图。</p>
+</section>
+
+<!-- F4 -->
+<section class="ch" id="f4" data-floor="4" data-label="随机">
+  <div class="ch-head reveal"><span class="floor">F4</span><h2>13 条互不干扰的随机数流</h2>
+    <p>工程给每类随机事件分配独立的随机数流，所以多打一张牌不会改变下一场的掉落。Random.ts 用 BigInt 实现了 xorshift128+ 和 MurmurHash3 的混合函数。</p></div>
+  <div class="panel reveal">
+    <div class="streams" id="streams"></div>
+    <div class="rng-demo">
+      <div>
+        <div class="eyebrow">同种子 · card 流前 8 次 random(99)</div>
+        <div class="rng-seq" id="rngA"></div>
+      </div>
+      <div>
+        <div class="eyebrow">第 3 层进入时 · misc 流 (seed + 3) 前 8 次</div>
+        <div class="rng-seq" id="rngB"></div>
+      </div>
+    </div>
+    <div class="btns" style="margin-top:14px"><button class="btn" id="rngRe">再算一遍（结果不变）</button><span class="muted" style="font-size:13px;align-self:center">种子沿用上面地图的输入。</span></div>
+  </div>
+  <p class="muted reveal" style="margin-top:14px;font-size:14px">Boss 的洗牌例外：这里用的是另一个类 <code>JavaRandom</code>，实现的是 java.util.Random 的 48 位线性同余算法。</p>
+</section>
+
+<!-- F5 -->
+<section class="ch" id="f5" data-floor="5" data-label="伤害">
+  <div class="ch-head reveal"><span class="floor">F5</span><h2>一次伤害要经过 8 道工序</h2>
+    <p>Combatant.ts 的 <code>normalDamage</code> 按固定顺序叠加修正，每一步都用 32 位浮点截断，最后向下取整。拖动滑块或切换状态，看数字怎么变。</p></div>
+  <div class="panel reveal">
+    <div class="calc">
+      <div class="ctl">
+        <div class="row"><label for="dBase">基础伤害</label><input type="range" id="dBase" min="0" max="40" value="6"><output id="oBase">6</output></div>
+        <div class="row"><label for="dStr">力量</label><input type="range" id="dStr" min="-5" max="15" value="2"><output id="oStr">2</output></div>
+        <div class="row"><label for="dVig">活力</label><input type="range" id="dVig" min="0" max="10" value="0"><output id="oVig">0</output></div>
+        <div class="row"><label for="dSlow">目标缓慢层数</label><input type="range" id="dSlow" min="0" max="10" value="0"><output id="oSlow">0</output></div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">攻击方</div>
+          <div class="toggles">
+            <button class="tg" data-t="weak" aria-pressed="false">虚弱 ×0.75</button>
+            <button class="tg" data-t="dbl" aria-pressed="false">双倍伤害 ×2</button>
+            <button class="tg" data-t="nib" aria-pressed="false">钢笔尖 ×2</button>
+          </div>
+        </div>
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">目标</div>
+          <div class="toggles">
+            <button class="tg def" data-t="vul" aria-pressed="true">易伤 ×1.5</button>
+            <button class="tg def" data-t="fly" aria-pressed="false">飞行 ÷2</button>
+            <button class="tg def" data-t="int" aria-pressed="false">无实体 封顶 1</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <ol class="pipe" id="pipe"></ol>
+      </div>
+    </div>
+  </div>
+  <p class="muted reveal" style="margin-top:14px;font-size:14px">格挡的公式短得多：基础值加敏捷，脆弱时乘 0.75，向下取整；身上有“无法格挡”时直接归零。</p>
+</section>
+
+<!-- F6 -->
+<section class="ch" id="f6" data-floor="6" data-label="队列">
+  <div class="ch-head reveal"><span class="floor">F6</span><h2>动作队列：所有效果排队结算</h2>
+    <p>出牌不会立刻生效。卡牌先进入卡牌队列，轮到它时再把伤害、格挡等动作压进动作队列。遗物和能力可以用 addToTop 插队。每帧只推进当前动作，这就是战斗节奏感的来源。</p></div>
+  <div class="panel reveal">
+    <div class="btns" style="margin-bottom:16px">
+      <button class="btn" id="qCard">打出「双重打击」</button>
+      <button class="btn" id="qTop">遗物插队 addToTop</button>
+      <button class="btn primary" id="qStep">update() 一步</button>
+      <button class="btn" id="qAuto">自动播放</button>
+      <button class="btn" id="qReset">清空</button>
+    </div>
+    <div class="q-lanes">
+      <div class="lane"><span class="ln">currentAction</span><div class="slots" id="qCur"></div></div>
+      <div class="lane"><span class="ln">actions[]</span><div class="slots" id="qAct"></div></div>
+      <div class="lane"><span class="ln">cards[]</span><div class="slots" id="qCards"></div></div>
+    </div>
+    <div class="q-log" id="qLog" aria-live="polite"></div>
+  </div>
+  <p class="muted reveal" style="margin-top:14px;font-size:14px">取队列的顺序是 <code>actions.shift() ?? cards.shift()</code>：动作队列清空之前，下一张牌不会开始结算。战斗结束时，<code>clearPostCombatActions</code> 只保留伤害、治疗、格挡和 UseCardAction。</p>
+</section>
+
+<!-- F7 -->
+<section class="ch" id="f7" data-floor="7" data-label="奖励">
+  <div class="ch-head reveal"><span class="floor">F7</span><h2>卡牌奖励里藏着一个保底计数器</h2>
+    <p>每抽到一张普通卡，计数器减 1，最低到 −40；抽到稀有卡就重置回 +5。计数器加在掷骰结果上，所以越久没出稀有，稀有就越容易出。下面的模拟器按 CombatRewards.ts 的规则运行。</p></div>
+  <div class="panel reveal">
+    <div class="pity">
+      <div>
+        <div class="panel-h"><span class="eyebrow">cardBlizzRandomizer 走势（最近 90 张）</span></div>
+        <svg id="pitySvg" viewBox="0 0 520 220" role="img" aria-label="保底计数器折线"></svg>
+        <div class="last-draw" id="lastDraw"></div>
+      </div>
+      <div>
+        <div class="btns" style="margin-bottom:14px">
+          <button class="btn primary" id="pN">普通战斗</button>
+          <button class="btn" id="pN10">普通 ×10</button>
+          <button class="btn" id="pE">精英战斗</button>
+          <button class="btn" id="pR">重置</button>
+        </div>
+        <div class="tally"><div><div class="n c" id="tC">0</div><div class="l">普通</div></div><div><div class="n u" id="tU">0</div><div class="l">罕见</div></div><div><div class="n r" id="tR">0</div><div class="l">稀有</div></div></div>
+        <div class="odds" id="odds"></div>
+      </div>
+    </div>
+  </div>
+  <p class="muted reveal" style="margin-top:14px;font-size:14px">一个反直觉的结果：刚出过稀有卡后计数器是 +5，而普通战斗要求掷骰结果小于 3，掷骰最小是 0 + 5，所以<b style="color:var(--bone)">紧接着的普通战斗稀有率是 0%</b>。药水掉落也有类似机制，基础 40%，没掉就 +10%，掉了就 −10%。</p>
+</section>
+
+<!-- F8 -->
+<section class="ch" id="f8" data-floor="8" data-label="遗物">
+  <div class="ch-head reveal"><span class="floor">F8</span><h2>180 件遗物，挂在 28 个钩子上</h2>
+    <p>遗物不改战斗代码，而是在固定时机被回调。RelicBattleHooks 把一场战斗切成 28 个挂点。带金点的挂点可以查看工程里的实际例子。</p></div>
+  <div class="panel reveal">
+    <div class="hooks" id="hooks"></div>
+    <div class="hook-detail" id="hookDetail">点击任意挂点。</div>
+  </div>
+  <div class="panel reveal" style="margin-top:14px">
+    <div class="panel-h"><span class="eyebrow">180 件遗物按稀有度</span></div>
+    <div class="tiers" id="tiers"></div>
+    <div class="legend" id="tierLegend" style="margin-top:10px"></div>
+    <p class="muted" style="font-size:13px;margin-top:10px">颜色归属：共享 140 · 红 11 · 绿 11 · 蓝 9 · 紫 9。蓝色和紫色属于工程里尚未开放的两个角色，数据已经就位。</p>
+  </div>
+</section>
+
+<!-- F9 -->
+<section class="ch" id="f9" data-floor="9" data-label="内容">
+  <div class="ch-head reveal"><span class="floor">F9</span><h2>内容清单</h2>
+    <p>卡牌和药水放在 data/combat-catalog.json，遗物在生成的 RelicData.ts，怪物行为写在 LaterMonsterAI.ts 与 Monster.ts 里，数据覆盖三幕。</p></div>
+  <div class="inv reveal">
+    <div class="panel">
+      <div class="panel-h"><span class="eyebrow">220 张卡牌 · 颜色 × 类型</span></div>
+      <div class="scroll-x"><table class="heat" id="heat"></table></div>
+      <p class="muted" style="font-size:13px;margin-top:8px">红色和绿色分别属于 PlayerClass 里的 IRONCLAD 与 THE_SILENT。CardExecution.ts 用一个 191 个分支的 switch 执行这些卡牌的效果。</p>
+    </div>
+    <div class="panel">
+      <div class="panel-h"><span class="eyebrow">遭遇池 · 弱 / 强 / 精英</span></div>
+      <div class="acts">
+        <div><div class="k">ACT 1</div><div class="t">Exordium</div><div class="r">弱 <b>4</b> · 强 <b>10</b> · 精英 <b>3</b><br>Boss <b>3</b></div></div>
+        <div><div class="k">ACT 2</div><div class="t">The City</div><div class="r">弱 <b>5</b> · 强 <b>8</b> · 精英 <b>3</b><br>Boss <b>3</b></div></div>
+        <div><div class="k">ACT 3</div><div class="t">The Beyond</div><div class="r">弱 <b>3</b> · 强 <b>8</b> · 精英 <b>3</b><br>Boss <b>3</b></div></div>
+      </div>
+      <div class="strip" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:12px">
+        <div><div class="n num">83</div><div class="l">种怪物 AI 分支</div></div>
+        <div><div class="n num">≈90</div><div class="l">种能力 Power</div></div>
+        <div><div class="n num">14</div><div class="l">种怪物意图</div></div>
+        <div><div class="n num">42</div><div class="l">种药水</div></div>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:10px">遭遇序列在开局时一次生成：第一幕先排 3 场弱敌，再排 13 场强敌，相邻两场不重复，并排除特定组合，比如“两只虱子”之后不接“三只虱子”。</p>
+    </div>
+  </div>
+</section>
+
+<!-- F10 -->
+<section class="ch" id="f10" data-floor="10" data-label="资源">
+  <div class="ch-head reveal"><span class="floor">F10</span><h2>256 MB 资源的构成</h2>
+    <p>资源放在 resources/original 下，由 OriginalAssetLoader 按路径加载。除了图片和音频，还有一类少见的资源：预先算好的字体度量与排版表。</p></div>
+  <div class="split reveal">
+    <div class="panel">
+      <div class="bars pending" id="assetBars"></div>
+    </div>
+    <div class="prose">
+      <h3>字体度量表：预先存好的排版</h3>
+      <p class="muted">data 目录里有 12 个 *-metrics.json 与布局文件，合计约 2.4 MB。最大的 monster-tip-layouts-runtime.json 有 1.56 MB，存的是怪物提示框每一行文字的预排结果。工程没有在运行时计算换行，而是把结果直接存了下来。</p>
+      <h3>Spine 骨骼动画</h3>
+      <p class="muted">85 个 .atlas 中，第一幕怪物 25 个，第二幕 21 个，第三幕 17 个。render/OriginalSkeleton.ts 负责驱动它们。</p>
+      <h3>着色器</h3>
+      <p class="muted">6 组顶点与片元着色器：模糊、灰度、描边、红色剪影、白色剪影、水面。</p>
+    </div>
+  </div>
+</section>
+
+<!-- F11 -->
+<section class="ch" id="f11" data-floor="11" data-label="存档">
+  <div class="ch-head reveal"><span class="floor">F11</span><h2>存档：4 个检查点，外加随机数的状态</h2>
+    <p>RunSave.ts 在一局里的 4 个时刻写入 localStorage，并保存每条随机数流的 seed0、seed1 和调用次数。读档后，接下来的每一次随机结果都和存档前一样，存读档无法刷结果。</p></div>
+  <div class="panel reveal">
+    <div class="tl">
+      <div><div class="k">START</div><div class="t">开局</div><div class="d">选完角色、生成地图之后。</div></div>
+      <div><div class="k">POST_NEOW</div><div class="t">开局祝福之后</div><div class="d">记录起始奖励的选择结果。</div></div>
+      <div><div class="k">ENTER_ROOM</div><div class="t">进入房间前</div><div class="d">在遗物的进房钩子和问号房掷骰之前拍快照。</div></div>
+      <div><div class="k">POST_COMBAT</div><div class="t">战斗结束</div><div class="d">保存奖励列表和领取状态。</div></div>
+    </div>
+    <div class="keys"><code>STANDARD_RUN_SAVE</code><code>RUN_HISTORY</code><code>BOSSES_SEEN</code><code>NEOW_INTRO</code><code>DMG_DEALT</code><code>NOTE_CARD</code></div>
+    <p class="muted" style="font-size:13px;margin-top:10px">键名都带 <code>original-port:</code> 前缀。主存档损坏时会回退到备份，并在主菜单提示“自动存档损坏，已找到可恢复的备份”。</p>
+  </div>
+</section>
+
+<!-- F12 -->
+<section class="ch" id="f12" data-floor="12" data-label="诊断">
+  <div class="ch-head reveal"><span class="floor">F12</span><h2>诊断：优点、代价与风险</h2>
+    <p>从工程质量看，数值计算很严谨，结构上有几处明显的集中点。</p></div>
+  <div class="diag reveal">
+    <div class="dg good"><span class="sev">优点</span><h3>数值计算可复现</h3><p>298 处 Math.fround 统一了 32 位浮点精度，随机数有两套独立实现并保存完整状态，同一种子的结果稳定可复现。</p></div>
+    <div class="dg good"><span class="sev">优点</span><h3>规则与表现分开</h3><p>combat、map、random、relics 基本不依赖 cc 模块，render 层 58 个文件只负责画。这让“换引擎”成为可行的事。</p></div>
+    <div class="dg risk"><span class="sev">风险</span><h3>CombatScreen.ts 有 2,357 行</h3><p>输入、手牌动画、敌人回合、事件战斗、奖励衔接都在一个类里，改一处容易牵动全局。建议拆成战斗控制器和战斗视图两层。</p></div>
+    <div class="dg risk"><span class="sev">风险</span><h3>191 个分支的卡牌 switch</h3><p>executeCard 按类名分派，新增一张卡就要改这个函数，而且没实现的卡直到运行时才会抛错。改成按 id 注册的效果表更容易扩展和测试。</p></div>
+    <div class="dg risk"><span class="sev">风险</span><h3>生成链缺失，仓库没有提交</h3><p>RelicData.ts 注明由 tools/generate-relic-catalog.cjs 生成，但工程里没有 tools 目录。Git 仓库也还没有任何提交，目前没有可回退的版本。</p></div>
+    <div class="dg cost"><span class="sev">代价</span><h3>编辑器几乎用不上</h3><p>0 个预制体、1 个场景，所有布局写在代码里。美术和策划无法在编辑器里调整界面，只能改代码。</p></div>
+  </div>
+</section>
+
+<!-- F13 -->
+<section class="ch" id="f13" data-floor="13" data-label="路线">
+  <div class="ch-head reveal"><span class="floor">F13</span><h2>阅读路线</h2>
+    <p>想顺着源码读一遍，可以按下面的顺序。</p></div>
+  <div class="panel reveal">
+    <div class="panel-h"><span class="eyebrow">建议阅读顺序</span></div>
+    <ol class="route">
+      <li><div><code>core/CardCrawlGame.ts</code> <span>顶层状态机和各界面的组装方式</span></div></li>
+      <li><div><code>combat/CombatActionManager.ts</code> → <code>CardExecution.ts</code> <span>动作队列和卡牌效果</span></div></li>
+      <li><div><code>combat/Combatant.ts</code> <span>伤害、格挡和能力的计算</span></div></li>
+      <li><div><code>dungeons/Exordium.ts</code> → <code>map/</code> <span>一局的骨架与地图生成</span></div></li>
+      <li><div><code>random/Random.ts</code> · <code>JavaRandom.ts</code> <span>两套随机数实现与状态保存</span></div></li>
+      <li><div><code>relics/RelicBattleHooks.ts</code> <span>钩子式扩展的完整清单</span></div></li>
+    </ol>
+  </div>
+</section>
+
+<footer><span>KaPai 解剖图谱 · 数据取自 KaPai 工程源码与资源目录</span><span>统计日期 2026-10-01</span></footer>
+</div>
+</main>
+
+<script>
+(()=>{
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- counters ---------- */
+function countUp(el){const to=+el.dataset.count;if(reduce||!to)return;const t0=performance.now(),d=1100;
+  const step=t=>{const p=Math.min(1,(t-t0)/d),e=1-Math.pow(1-p,3);el.textContent=Math.round(to*e).toLocaleString('en-US');if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+
+/* ---------- reveal ---------- */
+const io=new IntersectionObserver(es=>{for(const e of es){if(!e.isIntersecting)continue;const el=e.target;
+  el.classList.remove('pending');el.querySelectorAll?.('[data-count]').forEach(countUp);
+  if(el.dataset.count)countUp(el);io.unobserve(el)}},{threshold:.12});
+$$('.reveal').forEach(el=>{const r=el.getBoundingClientRect();if(r.top>innerHeight){el.classList.add('pending')}io.observe(el)});
+$$('.hand [data-count]').forEach(countUp);
+
+/* ---------- gauge ---------- */
+const floors=$$('[data-floor]'),g=$('#gauge');
+floors.forEach(f=>{const li=document.createElement('li');li.innerHTML=`<a href="#${f.id}"><span class="dot"><i></i></span><span>F${f.dataset.floor}</span><span class="lbl">${f.dataset.label}</span></a>`;g.appendChild(li)});
+const lis=[...g.querySelectorAll('li')];
+function onScroll(){const y=scrollY+innerHeight*.35;let cur=0;floors.forEach((f,i)=>{if(f.offsetTop<=y)cur=i});
+  lis.forEach((li,i)=>{li.classList.toggle('on',i===cur);li.classList.toggle('past',i<cur)});
+  const h=document.documentElement.scrollHeight-innerHeight,p=h>0?scrollY/h:0;
+  $('#topfill').style.width=(p*100)+'%';$('#gfill').style.height=`calc(${p*100}% - ${p*12}px)`}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* ---------- FSM ---------- */
+const fsmText=[
+ ['开场 Logo 淡入淡出，同时在后台预加载整局所需资源。','initialize() 里已经提前创建好隐藏的主菜单，避免切换时卡顿。','prepareRunAssets 预热战斗资源，不做任何随机抽取。'],
+ ['主菜单、选人、卡牌/遗物/药水图鉴、制作人员名单同时活跃。','点击出发后先读取 combat-catalog.json，再创建 Exordium 地牢对象。','黑幕淡出 1 秒，淡出结束才真正切换到 GAMEPLAY。'],
+ ['StandardRunScreen 接管一切：地图、房间、战斗、奖励都在它下面。','onSaveCheckpoint 回调负责自动存档，失败时在界面上提示。','一局结束后 returnToMenu 淡出 2 秒，清理音乐与环境音，回到 CHAR_SELECT。']];
+function fsm(k){$$('#fsm .st').forEach(b=>b.classList.toggle('on',b.dataset.k==k));
+  $('#fsmDetail').innerHTML='<ul>'+fsmText[k].map(t=>`<li>${t}</li>`).join('')+'</ul>'}
+$$('#fsm .st').forEach(b=>b.addEventListener('click',()=>fsm(b.dataset.k)));fsm(0);
+
+/* ---------- module bars ---------- */
+const LAYERS={ui:['界面层','#6BA6C9'],fx:['表现层','#8F7FB8'],rule:['规则层','#E8743B'],data:['进程与数据','#D9B45A'],infra:['基础设施','#62C3A5']};
+const MODS=[['screens',9232,32,'ui','CombatScreen.ts · 2,357 行'],['render',5799,58,'fx','CombatSpecialEffects.ts · 686 行'],['relics',4498,8,'rule','RelicData.ts · 3,879 行（生成）'],['monsters',3461,4,'rule','LaterMonsterAI.ts · 2,748 行'],['combat',2119,15,'rule','StarterBattle.ts · 1,088 行'],['rooms',998,6,'rule','EventRoomModel.ts · 409 行'],['scenes',889,7,'fx','TitleBackground.ts · 295 行'],['helpers',719,9,'infra','InputHelper 等 9 个工具'],['core',532,2,'infra','CardCrawlGame.ts · 485 行'],['unlock',457,5,'data','UnlockProfile 等 5 个'],['audio',384,3,'infra','MusicMaster / SoundMaster'],['saveAndContinue',373,2,'data','RunSave.ts · 298 行'],['ui',259,3,'ui','按钮与通用控件'],['assets',247,2,'infra','OriginalAssetLoader'],['cards',235,6,'rule','卡牌数据在 JSON，这里只有基类'],['dungeons',219,1,'rule','Exordium.ts · 219 行'],['credits',211,3,'ui','制作人员名单'],['vfx',133,2,'fx','标题火焰与尘埃'],['map',130,3,'rule','MapGenerator · RoomTypeAssigner'],['random',126,2,'infra','Random · JavaRandom'],['bootstrap',120,1,'infra','OriginalGameBootstrap'],['rewards',113,1,'data','CombatRewards.ts'],['characters',97,2,'rule','AbstractPlayer · PlayerClass'],['math',44,1,'infra','Interpolation'],['neow',35,1,'rule','开局祝福'],['localization',27,1,'infra','LocalizedStrings']];
+$('#layerLegend').innerHTML=Object.values(LAYERS).map(([n,c])=>`<span><i style="background:${c}"></i>${n}</span>`).join('');
+const max=MODS[0][1];
+$('#bars').innerHTML=MODS.map(([n,l,f,k,big])=>`<div class="bar" data-tip="<b>${n}/</b> · ${f} 个文件 · ${l.toLocaleString('en-US')} 行 · ${LAYERS[k][0]}<br>最大文件：${big}"><span class="name">${n}</span><span class="track"><i style="--w:${(l/max*100).toFixed(2)}%;background:${LAYERS[k][1]}"></i></span><span class="val">${l.toLocaleString('en-US')}</span></div>`).join('');
+$$('#bars .bar').forEach(b=>{const show=()=>{$('#barTip').innerHTML=b.dataset.tip};b.addEventListener('mouseenter',show);b.addEventListener('click',show)});
+
+/* ---------- Random (xorshift128+ as in random/Random.ts) ---------- */
+function hash(v){let h=BigInt.asUintN(64,v);h^=h>>33n;h=BigInt.asUintN(64,h*0xff51afd7ed558ccdn);h^=h>>33n;h=BigInt.asUintN(64,h*0xc4ceb9fe1a85ec53n);return h^(h>>33n)}
+class Rng{constructor(seed){this.s0=hash(seed===0n?-9223372036854775808n:seed);this.s1=hash(this.s0);this.counter=0}
+  nextLong(){let a=this.s0;const b=this.s1;this.s0=b;a^=BigInt.asUintN(64,a<<23n);this.s1=a^b^(a>>17n)^(b>>26n);return BigInt.asUintN(64,this.s1+b)}
+  nextInt(n){const L=BigInt(n);for(;;){const bits=this.nextLong()>>1n,v=bits%L;if(BigInt.asIntN(64,bits-v+L-1n)>=0n)return Number(v)}}
+  random(a,b){this.counter++;return b===undefined?this.nextInt(a+1):a+this.nextInt(b-a+1)}
+  randomFloat(){this.counter++;return Math.fround(Number(this.nextLong()>>40n)/16777216)}
+  shuffle(x){for(let r=x.length;r>1;r--){const s=this.nextInt(r);[x[r-1],x[s]]=[x[s],x[r-1]]}}}
+const ALPHA='0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ';
+function seedFrom(str){let v=0n;for(const ch of str.toUpperCase()){const i=ALPHA.indexOf(ch==='O'?'0':ch);if(i<0)continue;v=v*35n+BigInt(i)}return BigInt.asIntN(64,v)}
+function seedToStr(v){let u=BigInt.asUintN(64,v),s='';if(u===0n)return'0';while(u>0n){s=ALPHA[Number(u%35n)]+s;u/=35n}return s}
+
+/* ---------- Map ---------- */
+class MNode{constructor(x,y){this.x=x;this.y=y;this.edges=[];this.parents=[];this.room=null}
+  get has(){return this.edges.length>0}
+  addEdge(dx,dy){if(!this.edges.some(e=>e.dstX===dx&&e.dstY===dy)){this.edges.push({dstX:dx,dstY:dy});this.edges.sort((a,b)=>a.dstX-b.dstX)}}}
+function ancestor(a,b,maxD){let l=a.x<b.y?a:b,r=a.x<b.y?b:a;for(let row=a.y;row>=0&&row>=a.y-maxD;row--){if(!l.parents.length||!r.parents.length)return null;
+  l=l.parents.reduce((m,n)=>n.x>m.x?n:m);r=r.parents.reduce((m,n)=>n.x<m.x?n:m);if(l===r)return l}return null}
+function path(map,cur,rng){if(cur.y+1>=map.length){cur.addEdge(3,cur.y+2);return}
+  const end=map[cur.y].length-1;let tx=cur.x+rng.random(cur.x===0?0:-1,cur.x===end?0:1);const ty=cur.y+1;let cand=map[ty][tx];
+  for(const p of cand.parents){if(p===cur)continue;const an=ancestor(p,cur,5);if(an&&ty-an.y<3){
+    if(cand.x>cur.x)tx=Math.max(0,cur.x+rng.random(-1,0));else if(cand.x===cur.x){tx=cur.x+rng.random(-1,1);if(tx>end)tx=cur.x-1;else if(tx<0)tx=cur.x+1}else tx=Math.min(end,cur.x+rng.random(0,1));cand=map[ty][tx]}}
+  const L=map[cur.y][cur.x-1];if(L&&L.has)tx=Math.max(tx,L.edges[L.edges.length-1].dstX);
+  const R=map[cur.y][cur.x+1];if(R&&R.has)tx=Math.min(tx,R.edges[0].dstX);
+  cand=map[ty][tx];cur.addEdge(tx,ty);cand.parents.push(cur);path(map,cand,rng)}
+function genMap(rng){const H=15,W=7,map=Array.from({length:H},(_,y)=>Array.from({length:W},(__,x)=>new MNode(x,y)));let first=-1;
+  for(let p=0;p<6;p++){let s=rng.random(0,W-1);if(p===0)first=s;while(p===1&&s===first)s=rng.random(0,W-1);path(map,map[0][s],rng)}
+  const seen=new Set();for(const n of map[0])for(const e of [...n.edges]){const k=e.dstX+','+e.dstY;if(seen.has(k))n.edges.splice(n.edges.indexOf(e),1);seen.add(k)}
+  const count=map.flat().filter(n=>n.has&&n.y!==H-2).length,rooms=[];
+  for(const [t,c] of [['Shop',.05],['Rest',.12],['Elite',.08],['Event',.22]])for(let i=0;i<Math.round(Math.fround(count*Math.fround(c)));i++)rooms.push(t);
+  for(const n of map[H-1])n.room='Rest';for(const n of map[0])n.room='Monster';for(const n of map[8])n.room='Treasure';
+  const un=map.flat().filter(n=>n.has&&n.room===null);while(rooms.length<un.length)rooms.push('Monster');rng.shuffle(rooms);
+  for(const n of un){const sib=n.parents.flatMap(p=>p.edges.map(e=>map[e.dstY][e.dstX]).filter(s=>s!==n));
+    const i=rooms.findIndex(t=>{if(n.y<=4&&(t==='Rest'||t==='Elite'))return false;if(n.y>=13&&t==='Rest')return false;
+      if(['Rest','Treasure','Shop','Elite'].includes(t)&&n.parents.some(p=>p.room===t))return false;
+      return !['Rest','Monster','Event','Elite','Shop'].includes(t)||!sib.some(s=>s.room===t)});if(i>=0)n.room=rooms.splice(i,1)[0]}
+  for(const n of un)n.room??='Monster';return map}
+const ROOM={Monster:['普通怪','#93AEB1'],Elite:['精英','#E8743B'],Rest:['篝火','#62C3A5'],Shop:['商店','#D9B45A'],Event:['问号','#6BA6C9'],Treasure:['宝箱','#C9A26B']};
+function glyph(t,c){switch(t){
+  case'Monster':return`<path d="M-6 6 L0 -7 L6 6 Z" fill="${c}"/>`;
+  case'Elite':return`<path d="M-8 5 L-8 -3 L-4 1 L0 -8 L4 1 L8 -3 L8 5 Z" fill="${c}"/>`;
+  case'Rest':return`<path d="M0 -8 C5 -3 6 1 3 6 L-3 6 C-6 1 -5 -3 0 -8 Z" fill="${c}"/>`;
+  case'Shop':return`<circle r="6.5" fill="none" stroke="${c}" stroke-width="2.4"/><circle r="2" fill="${c}"/>`;
+  case'Event':return`<text y="5.5" text-anchor="middle" font-family="Noto Serif SC,serif" font-weight="900" font-size="17" fill="${c}">?</text>`;
+  case'Treasure':return`<rect x="-7" y="-5" width="14" height="10" rx="2" fill="${c}"/><rect x="-7" y="-2" width="14" height="1.6" fill="#051A21"/>`}}
+function drawMap(){const str=$('#seedIn').value.trim()||'KAPAI7';const seed=seedFrom(str);
+  const rng=new Rng(BigInt.asIntN(64,seed+1n)),map=genMap(rng);
+  const W=560,H=700,px=x=>60+x*73.3,py=y=>H-48-y*42.5;let edges='',nodes='';const jit=(x,y,k)=>((Math.sin(x*12.9898+y*78.233+k)*43758.5453)%1)*9;
+  const P=n=>[px(n.x)+jit(n.x,n.y,1),py(n.y)+jit(n.x,n.y,2)];
+  for(const row of map)for(const n of row){for(const e of n.edges){const [x1,y1]=P(n);let x2,y2;if(e.dstY>=15){x2=W/2;y2=40}else{[x2,y2]=P(map[e.dstY][e.dstX])}
+      edges+=`<line class="edge" data-f="${n.x},${n.y}" data-t="${e.dstX},${e.dstY}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`}}
+  const counts={};for(const row of map)for(const n of row){if(!n.has)continue;counts[n.room]=(counts[n.room]||0)+1;const [x,y]=P(n),[nm,c]=ROOM[n.room];
+    nodes+=`<g class="map-node" data-k="${n.x},${n.y}" data-name="第 ${n.y+1} 层 · ${nm}" transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><circle r="13" fill="#051A21" stroke="${c}" stroke-opacity=".35"/>${glyph(n.room,c)}</g>`}
+  const boss=`<g transform="translate(${W/2} 30)"><circle r="20" fill="#051A21" stroke="#E8743B" stroke-width="1.5"/><path d="M-9 6 L-9 -4 L-4 1 L0 -10 L4 1 L9 -4 L9 6 Z" fill="#E8743B"/></g><text x="${W/2+30}" y="35" fill="#93AEB1" font-family="JetBrains Mono,monospace" font-size="12">BOSS</text>`;
+  const rows=Array.from({length:15},(_,y)=>`<text x="14" y="${py(y)+4}" fill="#5F7F84" font-family="JetBrains Mono,monospace" font-size="10">${y+1}</text>`).join('');
+  $('#mapSvg').innerHTML=rows+edges+nodes+boss;
+  const total=Object.values(counts).reduce((a,b)=>a+b,0);
+  $('#mapCounts').innerHTML=Object.entries(ROOM).map(([k,[n,c]])=>`<span class="sw"><svg width="16" height="16" viewBox="-9 -9 18 18">${glyph(k,c)}</svg>${n}</span><b>${counts[k]||0}</b>`).join('')+`<span class="sw" style="color:var(--bone)">房间总数</span><b>${total}</b>`;
+  const tip=$('#mapTip'),stage=$('#mapStage');
+  $$('#mapSvg .map-node').forEach(g=>{g.addEventListener('mouseenter',()=>{const k=g.dataset.k;$$('#mapSvg .edge').forEach(e=>e.classList.toggle('hl',e.dataset.f===k||e.dataset.t===k));
+      const r=g.getBoundingClientRect(),s=stage.getBoundingClientRect();tip.textContent=g.dataset.name;tip.style.left=(r.left-s.left+r.width/2)+'px';tip.style.top=(r.top-s.top)+'px';tip.style.opacity=1});
+    g.addEventListener('mouseleave',()=>{tip.style.opacity=0;$$('#mapSvg .edge.hl').forEach(e=>e.classList.remove('hl'))})});
+  drawRng()}
+$('#seedGo').addEventListener('click',drawMap);$('#seedIn').addEventListener('keydown',e=>{if(e.key==='Enter')drawMap()});
+$('#seedRoll').addEventListener('click',()=>{const w=new Uint32Array(2);crypto.getRandomValues(w);$('#seedIn').value=seedToStr(BigInt.asIntN(64,(BigInt(w[0])<<32n)|BigInt(w[1]))).slice(0,10);drawMap()});
+
+/* ---------- RNG streams ---------- */
+const STREAMS=[['monster','遭遇序列与 Boss'],['event','问号房掷骰'],['merchant','商店货架'],['card','卡牌奖励'],['treasure','金币与宝箱'],['relic','遗物池洗牌'],['potion','药水掉落'],['monsterHp','怪物血量',1],['ai','怪物意图',1],['shuffle','抽牌堆洗牌',1],['cardRandom','战斗中随机卡',1],['misc','杂项',1],['map','地图生成',2]];
+$('#streams').innerHTML=STREAMS.map(([k,d,f])=>`<div class="stream ${f===1?'floor':f===2?'map':''}"><div class="k">${k}</div><div class="d">${d}</div></div>`).join('');
+function drawRng(){const seed=seedFrom($('#seedIn').value.trim()||'KAPAI7');const a=new Rng(seed),b=new Rng(BigInt.asIntN(64,seed+3n));
+  $('#rngA').innerHTML=Array.from({length:8},(_,i)=>`<span style="animation-delay:${i*40}ms">${a.random(99)}</span>`).join('');
+  $('#rngB').innerHTML=Array.from({length:8},(_,i)=>`<span style="animation-delay:${i*40}ms">${b.random(99)}</span>`).join('')}
+$('#rngRe').addEventListener('click',drawRng);
+drawMap();
+
+/* ---------- damage ---------- */
+const T={weak:false,dbl:false,nib:false,vul:true,fly:false,int:false};
+const f=Math.fround;
+function calc(){const base=+$('#dBase').value,str=+$('#dStr').value,vig=+$('#dVig').value,slow=+$('#dSlow').value;
+  ['Base','Str','Vig','Slow'].forEach(k=>$('#o'+k).textContent=$('#d'+k).value);
+  const steps=[];let d=f(base+str);steps.push([`基础 <b>${base}</b> + 力量 <b>${str}</b>`,d,true]);
+  d=f(d+vig);steps.push([`+ 活力 <b>${vig}</b>`,d,vig!==0]);
+  const s1=T.weak;if(s1)d=f(d*.75);steps.push(['× 0.75 虚弱',d,s1]);
+  if(T.dbl)d=f(d*2);steps.push(['× 2 双倍伤害',d,T.dbl]);
+  if(T.nib)d=f(d*2);steps.push(['× 2 钢笔尖',d,T.nib]);
+  if(T.vul)d=f(d*1.5);steps.push(['× 1.5 易伤',d,T.vul]);
+  if(slow>0)d=f(d*f(1+f(slow*f(.1))));steps.push([`× (1 + 0.1 × <b>${slow}</b>) 缓慢`,d,slow>0]);
+  if(T.fly)d=f(d/2);steps.push(['÷ 2 飞行',d,T.fly]);
+  const intOn=T.int&&d>1;if(intOn)d=1;steps.push(['无实体：大于 1 时封顶为 1',d,intOn]);
+  const out=Math.max(0,Math.floor(d));
+  $('#pipe').innerHTML=steps.map(([o,v,on])=>`<li class="${on?'':'skip'}"><span class="op">${o}</span><span class="v">${+v.toFixed(4)}</span></li>`).join('')+
+    `<li class="fin"><span class="op">向下取整，最低 0</span><span class="big" id="bigOut">${out}</span></li>`;
+  const b=$('#bigOut');if(!reduce){b.classList.add('bump');setTimeout(()=>b.classList.remove('bump'),180)}}
+['dBase','dStr','dVig','dSlow'].forEach(id=>$('#'+id).addEventListener('input',calc));
+$$('.tg').forEach(b=>b.addEventListener('click',()=>{T[b.dataset.t]=!T[b.dataset.t];b.setAttribute('aria-pressed',T[b.dataset.t]);calc()}));calc();
+
+/* ---------- action queue ---------- */
+let Q={cur:null,act:[],cards:[]},log=[],auto=null,uid=0;
+const mk=(name,cls,dur=1,expand=null)=>({id:++uid,name,cls,dur,left:dur,expand});
+function L(t){log.unshift(t);log=log.slice(0,40);$('#qLog').innerHTML=log.map(x=>`<div>${x}</div>`).join('')}
+function rq(){const chip=a=>`<span class="act ${a.cls}">${a.name}${a.left!==undefined&&a.dur>1?` <span style="opacity:.6">${'▪'.repeat(a.left)}</span>`:''}</span>`;
+  $('#qCur').innerHTML=Q.cur?chip(Q.cur).replace('class="act','class="act cur'):'<span class="muted" style="font-size:12px;padding-left:4px">空闲</span>';
+  $('#qAct').innerHTML=Q.act.map(chip).join('');$('#qCards').innerHTML=Q.cards.map(chip).join('')}
+function step(){if(!Q.cur||Q.cur.left<=0){if(Q.cur&&Q.cur.left<=0)L(`✓ ${Q.cur.name} 完成`);
+    Q.cur=Q.act.shift()??Q.cards.shift()??null;if(Q.cur){L(`→ 取出 ${Q.cur.name}`);if(Q.cur.expand){Q.cur.expand();}}
+    else{L('队列已空');if(auto){clearInterval(auto);auto=null;$('#qAuto').textContent='自动播放'}}}
+  else{Q.cur.left--;L(`… ${Q.cur.name} 更新中`)}rq()}
+$('#qCard').addEventListener('click',()=>{Q.cards.push(mk('双重打击','card',1,()=>{Q.act.push(mk('DamageAction 5','dmg',2),mk('DamageAction 5','dmg',2),mk('UseCardAction','',1));L('卡牌 use() 把 3 个动作压到 actions 底部')}));L('addCard：双重打击进入卡牌队列');rq()});
+$('#qTop').addEventListener('click',()=>{Q.act.unshift(mk('GainBlock 4','top',1));L('addToTop：遗物效果插到 actions 最前');rq()});
+$('#qStep').addEventListener('click',step);
+$('#qAuto').addEventListener('click',()=>{if(auto){clearInterval(auto);auto=null;$('#qAuto').textContent='自动播放';return}
+  if(!Q.cur&&!Q.act.length&&!Q.cards.length){$('#qCard').click();$('#qCard').click()}auto=setInterval(step,520);$('#qAuto').textContent='暂停'});
+$('#qReset').addEventListener('click',()=>{Q={cur:null,act:[],cards:[]};log=[];$('#qLog').innerHTML='';rq()});
+Q.cards.push(mk('双重打击','card',1,()=>{Q.act.push(mk('DamageAction 5','dmg',2),mk('DamageAction 5','dmg',2),mk('UseCardAction','',1));L('卡牌 use() 把 3 个动作压到 actions 底部')}));
+L('示例：一张牌已在卡牌队列里，点「update() 一步」开始');rq();
+
+/* ---------- pity simulator ---------- */
+let P;const prng=new Rng(20221218n);
+function pReset(){P={blizz:5,hist:[5],c:0,u:0,r:0,potMod:0,last:[]};pDraw()}
+function fight(kind){const out=[];for(let i=0;i<3;i++){const roll=prng.random(99)+P.blizz;const rare=kind==='elite'?10:3;
+    const rar=roll<rare?'R':roll<rare+(kind==='elite'?40:37)?'U':'C';if(rar==='C')P.blizz=Math.max(-40,P.blizz-1);else if(rar==='R')P.blizz=5;
+    P[rar.toLowerCase()]++;P.hist.push(P.blizz);out.push(rar)}
+  const pc=40+P.potMod;if(prng.random(0,99)<pc)P.potMod-=10;else P.potMod+=10;P.last=out}
+function pDraw(){const h=P.hist.slice(-90),W=520,H=220,x=i=>36+i*(W-50)/89,y=v=>18+(5-v)*(H-44)/45;
+  let s='';for(const v of [5,0,-10,-20,-30,-40]){s+=`<line x1="36" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="rgba(147,174,177,.14)"/><text x="28" y="${y(v)+4}" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10" fill="#93AEB1">${v>0?'+':''}${v}</text>`}
+  s+=`<line x1="36" x2="${W-10}" y1="${y(3)}" y2="${y(3)}" stroke="#D9B45A" stroke-dasharray="4 4" stroke-opacity=".7"/><text x="${W-12}" y="${y(3)-5}" text-anchor="end" font-family="Noto Sans SC,sans-serif" font-size="10.5" fill="#D9B45A">低于 +3 普通战斗才可能出稀有</text>`;
+  if(h.length>1){const pts=h.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+    s+=`<polygon points="${x(0)},${y(-40)} ${pts} ${x(h.length-1)},${y(-40)}" fill="rgba(232,116,59,.12)"/><polyline points="${pts}" fill="none" stroke="#E8743B" stroke-width="2" stroke-linejoin="round"/>`;
+    s+=`<circle cx="${x(h.length-1)}" cy="${y(h[h.length-1])}" r="4.5" fill="#E8743B" stroke="#051A21" stroke-width="2"/>`}
+  $('#pitySvg').innerHTML=s;$('#tC').textContent=P.c;$('#tU').textContent=P.u;$('#tR').textContent=P.r;
+  const pr=k=>{const rare=k==='e'?10:3,unc=k==='e'?40:37;const r=Math.min(1,Math.max(0,(rare-P.blizz)/100)),u=Math.min(1-r,Math.max(0,(rare+unc-P.blizz)/100)-r);return[r,u,1-r-u]};
+  const [nr,nu]=pr('n'),[er]=pr('e');
+  $('#odds').innerHTML=`<span>当前计数器</span><b>${P.blizz>0?'+':''}${P.blizz}</b><span>下一张 · 普通战斗稀有率</span><b>${(nr*100).toFixed(0)}%</b><span>下一张 · 普通战斗罕见率</span><b>${(nu*100).toFixed(0)}%</b><span>下一张 · 精英战斗稀有率</span><b>${(er*100).toFixed(0)}%</b><span>下一场药水掉落率</span><b>${Math.max(0,Math.min(100,40+P.potMod))}%</b>`;
+  const col={C:['普通','#93AEB1'],U:['罕见','#6BA6C9'],R:['稀有','#D9B45A']};
+  $('#lastDraw').innerHTML=P.last.map((r,i)=>`<span style="color:${col[r][1]};animation-delay:${i*60}ms">${col[r][0]}</span>`).join('')}
+$('#pN').addEventListener('click',()=>{fight('normal');pDraw()});
+$('#pN10').addEventListener('click',()=>{for(let i=0;i<10;i++)fight('normal');pDraw()});
+$('#pE').addEventListener('click',()=>{fight('elite');pDraw()});
+$('#pR').addEventListener('click',pReset);pReset();
+
+/* ---------- hooks ---------- */
+const HOOKS=[['战前',['beforeEnergyPrep','atPreBattle','atBattleStartPreDraw','atBattleStart']],
+ ['回合开始',['atTurnStart','energyMaster','onCardDraw','onShuffle','atTurnStartPostDraw']],
+ ['出牌',['canPlay','onPlayCard','onUseCard','atDamageModify','onApplyPower','onPowerApplied','onExhaust','onManualDiscard','onUsePotion']],
+ ['受伤',['modifyUnblockedDamage','onBlockBroken','wasHPLost','onHealthChanged','tryRevive','onMonsterDeath']],
+ ['回合结束',['onPlayerEndTurn','retainBlock']],['胜利',['beforeVictory','onVictory']]];
+const HD={beforeEnergyPrep:'能量准备之前。<b>奴隶贩子的项圈（SlaversCollar）</b>在这里判断当前是精英或 Boss 战，并先闪烁提示。',
+ atPreBattle:'战斗开始前。<b>异蛇之眼（Snecko Eye）</b>在这里施加混乱；<b>Enchiridion</b> 往手牌塞一张本回合免费的随机能力牌。',
+ atBattleStartPreDraw:'第一次抽牌前。<b>忍者卷轴（Ninja Scroll）</b>加入 3 张小刀，<b>工具箱（Toolbox）</b>弹出选牌界面。',
+ onShuffle:'抽牌堆洗牌时。<b>算盘（Abacus）</b>在这里给 6 点格挡，RelicData.ts 里它的 hooks 字段正是 ["onShuffle"]。',
+ atBattleStart:'第一次抽牌后、玩家第一回合开始前。',atTurnStart:'每个玩家回合开始，抽牌前。',energyMaster:'计算每回合能量上限。',onCardDraw:'每抽到一张牌。',atTurnStartPostDraw:'回合开始且抽完牌之后。',
+ canPlay:'判断一张牌能否打出，可以否决。',onPlayCard:'卡牌被打出、效果结算之前。',onUseCard:'卡牌效果入队时。',atDamageModify:'计算卡牌伤害时修正数值。',onApplyPower:'玩家施加能力之前。',onPowerApplied:'能力施加完成之后。',onExhaust:'有牌被消耗。',onManualDiscard:'玩家主动弃牌。',onUsePotion:'使用药水之后。',
+ modifyUnblockedDamage:'修正穿透格挡后的伤害。',onBlockBroken:'敌人格挡被打破。',wasHPLost:'玩家失去生命之后。',onHealthChanged:'生命值变化。',tryRevive:'玩家生命归零时尝试复活。',onMonsterDeath:'有怪物死亡。',
+ onPlayerEndTurn:'玩家按下结束回合。',retainBlock:'回合开始时判断是否保留格挡。',beforeVictory:'胜利结算前。',onVictory:'战斗胜利。'};
+const EX=['beforeEnergyPrep','atPreBattle','atBattleStartPreDraw','onShuffle'];
+$('#hooks').innerHTML=HOOKS.map(([p,hs])=>`<div class="phase"><h4>${p}<small>${hs.length}</small></h4>${hs.map(h=>`<button class="hk ${EX.includes(h)?'ex':''}" data-h="${h}">${h}</button>`).join('')}</div>`).join('');
+$$('.hk').forEach(b=>b.addEventListener('click',()=>{$$('.hk').forEach(x=>x.classList.toggle('on',x===b));$('#hookDetail').innerHTML=`<b>${b.dataset.h}</b>　${HD[b.dataset.h]}`}));
+$('.hk.ex').click();
+const TIERS=[['STARTER',4,'#5F7F84','初始'],['COMMON',36,'#93AEB1','普通'],['UNCOMMON',36,'#6BA6C9','罕见'],['RARE',34,'#D9B45A','稀有'],['BOSS',30,'#E8743B','Boss'],['SHOP',20,'#62C3A5','商店'],['SPECIAL',20,'#9A7FB8','特殊']];
+$('#tiers').innerHTML=TIERS.map(([k,n,c,l])=>`<i style="flex-grow:${n};background:${c}" title="${l} ${n}">${n}</i>`).join('');
+$('#tierLegend').innerHTML=TIERS.map(([k,n,c,l])=>`<span><i style="background:${c}"></i>${l} ${n}</span>`).join('');
+
+/* ---------- heat table ---------- */
+const COLS=['ATTACK','SKILL','POWER','STATUS','CURSE'],CN={ATTACK:'攻击',SKILL:'技能',POWER:'能力',STATUS:'状态',CURSE:'诅咒'};
+const ROWS=[['RED','红 · 75',[32,29,14,0,0]],['GREEN','绿 · 75',[28,36,11,0,0]],['COLORLESS','无色 · 56',[11,33,7,5,0]],['CURSE','诅咒 · 14',[0,0,0,0,14]]];
+$('#heat').innerHTML=`<thead><tr><th></th>${COLS.map(c=>`<th scope="col">${CN[c]}</th>`).join('')}</tr></thead><tbody>`+
+  ROWS.map(([k,l,v])=>`<tr><th scope="row">${l}</th>${v.map(n=>{const a=n?0.12+n/36*.7:0;return`<td style="background:${n?`rgba(232,116,59,${a.toFixed(2)})`:'rgba(147,174,177,.05)'};color:${n?(a>.5?'#051A21':'#EDE6D3'):'#5F7F84'}">${n||'·'}</td>`}).join('')}</tr>`).join('')+'</tbody>';
+
+/* ---------- asset bars ---------- */
+const AS=[['PNG 图片',2223,'#6BA6C9'],['OGG 音频',432,'#62C3A5'],['JSON 数据',115,'#D9B45A'],['JPG 图片',84,'#6BA6C9'],['Spine .atlas',85,'#8F7FB8'],['着色器 vs/fs',12,'#E8743B'],['TTF 字体',4,'#93AEB1'],['WAV 音频',3,'#62C3A5']];
+const am=AS[0][1];
+$('#assetBars').innerHTML=`<div class="eyebrow" style="margin-bottom:6px">文件数 · 按类型</div>`+AS.map(([n,v,c])=>`<div class="bar"><span class="name">${n}</span><span class="track"><i style="--w:${Math.max(.6,v/am*100).toFixed(2)}%;background:${c}"></i></span><span class="val">${v.toLocaleString('en-US')}</span></div>`).join('');
+$$('.bars').forEach(b=>{const r=b.getBoundingClientRect();if(r.top<innerHeight)b.classList.remove('pending');else io.observe(b)});
+})();
+</script>
+</body>
+</html>
